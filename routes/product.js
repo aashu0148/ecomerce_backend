@@ -3,6 +3,8 @@ const router = express.Router();
 
 const Product = require("../models/product");
 
+// brand | price | for(men,women,children) | size | type(casual,formal) | season(summer,winter,both)
+
 router.post("/add", (req, res) => {
   const { title, price, image, sizes, size, desc, images, filters, tags } =
     req.body;
@@ -23,7 +25,12 @@ router.post("/add", (req, res) => {
     desc,
     image,
     images,
-    filters,
+    filters: {
+      type: filters.type,
+      season: filters.season,
+      for: filters.for,
+      brand: filters.brand,
+    },
     tags,
   });
 
@@ -69,7 +76,7 @@ router.get("/search/:query", async (req, res) => {
         tags: new RegExp(query, "ig"),
       },
       {
-        filters: new RegExp(query, "ig"),
+        title: new RegExp(query, "ig"),
       },
     ],
   });
