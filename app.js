@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const mongoUri = require("./mongoUri");
 
 const productRoute = require("./routes/product");
+const userRoute = require("./routes/user");
 
 app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -19,7 +20,7 @@ app.use("/uploads/image", express.static(path.join("uploads", "image")));
 app.use(bodyParser.json());
 
 app.use("/product", productRoute);
-// app.use("/users", userRoute);
+app.use("/user", userRoute);
 
 mongoose
   .connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
