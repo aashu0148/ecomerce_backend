@@ -9,7 +9,9 @@ const Product = require("../models/product");
 //   "price":{
 //       "lte":"500",
 //       "gte":"1500"
-//   }
+//   },
+//  type:["footware","topwear","bottomwear"]
+// }
 
 router.post("/add", (req, res) => {
   const { title, price, image, sizes, size, desc, images, filters, tags } =
