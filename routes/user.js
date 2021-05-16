@@ -113,16 +113,69 @@ router.post("/signup", async (req, res) => {
 
   newUser
     .save()
-    .then(() => {
+    .then((response) => {
       res.status(201).json({
         status: true,
         message: "User created",
+        data: {
+          id: response._id,
+          name: response.name,
+          email: response.email,
+          mobile: response.mobile,
+        },
       });
     })
     .catch((err) => {
       res.status(502).json({
         status: false,
         message: `Error creating new User`,
+        error: err,
+      });
+    });
+});
+
+router.post("/update-profile", async (req, res) => {
+  const { id, name, mobile } = req.body;
+  const result = await User.findOne({ _id: id }, "-password");
+
+  if (!result) {
+    res.status(404).json({
+      status: false,
+      message: "User not Found",
+    });
+    return;
+  }
+
+  if (!name) {
+    res.status(422).json({
+      status: false,
+      message: "name field is missing",
+    });
+    return;
+  }
+
+  if (!mobile) {
+    res.status(422).json({
+      status: false,
+      message: "mobile field is missing",
+    });
+    return;
+  }
+
+  result.name = name;
+  result.mobile = mobile;
+  result
+    .save()
+    .then(() => {
+      res.status(200).json({
+        status: true,
+        message: "Updated successfully",
+      });
+    })
+    .catch((err) => {
+      res.status(502).json({
+        status: false,
+        message: `Error updating User`,
         error: err,
       });
     });
