@@ -104,6 +104,7 @@ router.post("/signup", async (req, res) => {
     return;
   }
   const newUser = new User({
+    role: "user",
     name,
     email,
     mobile,
@@ -179,6 +180,24 @@ router.post("/update-profile", async (req, res) => {
         error: err,
       });
     });
+});
+
+router.post("/check-role", (req, res) => {
+  const { id } = req.body;
+  const result = await User.findOne({ _id: id }, "-password");
+
+  if (!result) {
+    res.status(404).json({
+      status: false,
+      message: "User is not admin",
+    });
+    return;
+  }
+
+  res.status(200).json({
+    status: true,
+    message: "Welcome Admin",
+  });
 });
 
 module.exports = router;

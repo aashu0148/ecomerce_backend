@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const Product = require("../models/product");
+const User = require("../models/user");
 
 // "filters":{
 // "season":["summer"],
@@ -13,8 +14,8 @@ const Product = require("../models/product");
 //  type:["footware","topwear","bottomwear"]
 // }
 
-router.post("/add", (req, res) => {
-  const { title, price, image, sizes, size, desc, images, filters, tags } =
+router.post("/add", async (req, res) => {
+  const { id, title, price, image, sizes, size, desc, images, filters, tags } =
     req.body;
   if (
     !(title && price && sizes && size && images && desc && image && filters)
@@ -22,6 +23,22 @@ router.post("/add", (req, res) => {
     res.status(422).json({
       status: false,
       message: "All fields are mandetory",
+    });
+    return;
+  }
+
+  const result = await User.findOne({ _id: id }, "-password");
+  if (!result) {
+    res.status(422).json({
+      status: false,
+      message: "User not found in our database",
+    });
+    return;
+  }
+  if (result.role != "admin") {
+    res.status(422).json({
+      status: false,
+      message: "User do not have permission",
     });
     return;
   }
