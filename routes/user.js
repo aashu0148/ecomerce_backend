@@ -254,14 +254,24 @@ router.post("/place-order", async (req, res) => {
         from: "buildforss@gmail.com",
         to: "buildforfb@gmail.com",
         subject: "One order recieved",
-        text: `Name - ${deliveryAddress.name}
+        text: `
+        Name - ${deliveryAddress.name}
         Email - ${deliveryAddress.email}
         Mobile number - ${deliveryAddress.mobile}
         Address - ${deliveryAddress.address}
         City - ${deliveryAddress.city}
         State - ${deliveryAddress.state}
+        Payment - ${paymentMethod}
 
-        Order - ${order}
+        
+        Order - ${JSON.stringify(
+          order.map(
+            (item) => `
+        Item -${item.name}
+        Quantity - ${item.qty}
+        `
+          )
+        )}
         `,
       };
 
