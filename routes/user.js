@@ -3,6 +3,23 @@ const router = express.Router();
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const secretKey = require("../secret");
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  // service: "gmail",
+  // auth: {
+  //   user: "buildforfb@gmail.com",
+  //   pass: "jjwobwqchnzxqeir",
+  // },
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  auth: {
+    user: "buildforss@gmail.com",
+    pass: "build4ss",
+  },
+});
 
 router.post("/token-signin", async (req, res) => {
   const token = req.body.token;
@@ -110,6 +127,7 @@ router.post("/signup", async (req, res) => {
     mobile,
     password,
     cart: [],
+    orders: [],
   });
 
   newUser
@@ -182,9 +200,9 @@ router.post("/update-profile", async (req, res) => {
     });
 });
 
-router.post("/check-role", (req, res) => {
-  const { id } = req.body;
-  const result = await User.findOne({ _id: id }, "-password");
+router.post("/check-role", async (req, res) => {
+  const { id, email } = req.body;
+  const result = await User.findOne({ email: email, _id: id }, "-password");
 
   if (!result) {
     res.status(404).json({
@@ -198,6 +216,69 @@ router.post("/check-role", (req, res) => {
     status: true,
     message: "Welcome Admin",
   });
+});
+
+router.post("/place-order", async (req, res) => {
+  const { id, deliveryAddress, paymentMethod, order } = req.body;
+
+  if (
+    !deliveryAddress.name ||
+    !deliveryAddress.email ||
+    !deliveryAddress.mobile ||
+    !deliveryAddress.address ||
+    !deliveryAddress.city ||
+    !deliveryAddress.state ||
+    !order
+  ) {
+    res.status(422).json({
+      status: false,
+      message: "Insufficient delivery Information",
+    });
+    return;
+  }
+
+  const result = await User.findOne({ _id: id }, "-password");
+
+  result.orders.push(order);
+  result.cart = [];
+  result
+    .save()
+    .then(() => {
+      const mailOptionsUser = {
+        from: "buildforss@gmail.com",
+        to: deliveryAddress.email,
+        subject: "Thankyou for placing order.",
+        text: "Your order has been placed. Thank you for shopping with us",
+      };
+      const mailOptionsAdmin = {
+        from: "buildforss@gmail.com",
+        to: "buildforfb@gmail.com",
+        subject: "One order recieved",
+        text: `Name - ${deliveryAddress.name}
+        Email - ${deliveryAddress.email}
+        Mobile number - ${deliveryAddress.mobile}
+        Address - ${deliveryAddress.address}
+        City - ${deliveryAddress.city}
+        State - ${deliveryAddress.state}
+
+        Order - ${order}
+        `,
+      };
+
+      transporter.sendMail(mailOptionsUser);
+      transporter.sendMail(mailOptionsAdmin);
+      res.status(200).json({
+        status: true,
+        message: "Order placed successfully",
+      });
+    })
+    .catch((err) => {
+      res.status(502).json({
+        status: false,
+        message: `Error placing Order`,
+        error: err,
+      });
+    });
 });
 
 module.exports = router;
