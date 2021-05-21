@@ -6,21 +6,20 @@ const secretKey = require("../secret");
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  // service: "gmail",
-  // auth: {
-  //   user: "buildforfb@gmail.com",
-  //   pass: "jjwobwqchnzxqeir",
-  // },
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  requireTLS: true,
+  service: "gmail",
   auth: {
-    user: "buildforss@gmail.com",
-    pass: "build4ss",
+    user: "buildforfb@gmail.com",
+    pass: "jjwobwqchnzxqeir",
   },
+  // host: "smtp.gmail.com",
+  // port: 587,
+  // secure: false,
+  // requireTLS: true,
+  // auth: {
+  //   user: "buildforss@gmail.com",
+  //   pass: "build4ss",
+  // },
 });
-
 router.post("/token-signin", async (req, res) => {
   const token = req.body.token;
   let email, password;
@@ -201,17 +200,23 @@ router.post("/update-profile", async (req, res) => {
 });
 
 router.post("/check-role", async (req, res) => {
-  const { id, email } = req.body;
-  const result = await User.findOne({ email: email, _id: id }, "-password");
+  const { id } = req.body;
+  const result = await User.findOne({ _id: id }, "-password");
 
   if (!result) {
     res.status(404).json({
+      status: false,
+      message: "User not found",
+    });
+    return;
+  }
+  if (result.role != "admin") {
+    res.status(422).json({
       status: false,
       message: "User is not admin",
     });
     return;
   }
-
   res.status(200).json({
     status: true,
     message: "Welcome Admin",
@@ -248,7 +253,19 @@ router.post("/place-order", async (req, res) => {
         from: "buildforss@gmail.com",
         to: deliveryAddress.email,
         subject: "Thankyou for placing order.",
-        text: "Your order has been placed. Thank you for shopping with us",
+        text: `Your order has been placed. Thank you for shopping with us.
+        
+        Your order details :-
+        ${order
+          .map(
+            (item) => `
+        Item -${item.name}
+        Quantity - ${item.qty}
+        `
+          )
+          .join("\n")}
+        
+        `,
       };
       const mailOptionsAdmin = {
         from: "buildforss@gmail.com",
@@ -264,19 +281,23 @@ router.post("/place-order", async (req, res) => {
         Payment - ${paymentMethod}
 
         
-        Order - ${JSON.stringify(
-          order.map(
+        Order :- ${order
+          .map(
             (item) => `
         Item -${item.name}
         Quantity - ${item.qty}
         `
           )
-        )}
+          .join("\n")}
         `,
       };
 
-      transporter.sendMail(mailOptionsUser);
-      transporter.sendMail(mailOptionsAdmin);
+      transporter.sendMail(mailOptionsUser, (err, info) => {
+        console.log(err, info);
+      });
+      transporter.sendMail(mailOptionsAdmin, (err, info) => {
+        console.log(err, info);
+      });
       res.status(200).json({
         status: true,
         message: "Order placed successfully",

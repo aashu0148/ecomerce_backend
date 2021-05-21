@@ -1,8 +1,25 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+
+const fs = require("fs");
+const { promisify } = require("util");
+const unlinkFileAsync = promisify(fs.unlink);
 
 const Product = require("../models/product");
 const User = require("../models/user");
+
+const fileUpload = multer({
+  limits: { fileSize: 10244 * 1024 * 2.5 },
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, "uploads/images");
+    },
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + "_" + file.originalname);
+    },
+  }),
+});
 
 // "filters":{
 // "season":["summer"],
@@ -14,69 +31,124 @@ const User = require("../models/user");
 //  type:["footware","topwear","bottomwear"]
 // }
 
-router.post("/add", async (req, res) => {
-  const { id, title, price, image, sizes, size, desc, images, filters, tags } =
-    req.body;
-  if (
-    !(title && price && sizes && size && images && desc && image && filters)
-  ) {
-    res.status(422).json({
-      status: false,
-      message: "All fields are mandetory",
-    });
-    return;
-  }
-
-  const result = await User.findOne({ _id: id }, "-password");
-  if (!result) {
-    res.status(422).json({
-      status: false,
-      message: "User not found in our database",
-    });
-    return;
-  }
-  if (result.role != "admin") {
-    res.status(422).json({
-      status: false,
-      message: "User do not have permission",
-    });
-    return;
-  }
-  const newProduct = new Product({
-    title,
-    price,
-    sizes,
-    size,
-    desc,
-    image,
-    images,
-    filters: {
-      type: filters.type,
-      season: filters.season,
-      for: filters.for,
-      brand: filters.brand,
-      price: price,
-      sizes: sizes,
+router.post(
+  "/add",
+  fileUpload.fields([
+    {
+      name: "thumbnail",
+      maxCount: 1,
     },
-    tags,
-  });
-
-  newProduct
-    .save()
-    .then(() => {
-      res.status(201).json({
-        status: true,
-        message: "Entry created",
-      });
-    })
-    .catch((err) => {
-      res.status(502).json({
+    {
+      name: "image",
+      maxCount: 3,
+    },
+  ]),
+  async (req, res) => {
+    const { uid, title, price, size, desc, filters } = req.body;
+    const sizes = JSON.parse(req.body.sizes);
+    const tags = JSON.parse(req.body.tags);
+    if (!uid) {
+      res.status(422).json({
         status: false,
-        message: `Error creating Entry`,
-        error: err,
+        message: "User's Id not provided",
       });
+      return;
+    }
+
+    if (!req.files.thumbnail) {
+      res.status(422).json({
+        status: false,
+        message: "Thumbnail not provided",
+      });
+      return;
+    }
+
+    const image = req.files.thumbnail[0].path;
+    const images = [image];
+    if (req.files.image)
+      req.files.image.forEach((item) => images.push(item.path));
+
+    if (!(title && price && size && desc && filters)) {
+      images.forEach(async (item) => {
+        await unlinkFileAsync(item);
+      });
+      res.status(422).json({
+        status: false,
+        message: "All fields are mandetory",
+      });
+      return;
+    }
+    let result;
+    try {
+      result = await User.findOne({ _id: uid }, "-password");
+    } catch {
+      () => {
+        res.status(422).json({
+          status: false,
+          message: "Invalid id",
+        });
+      };
+    }
+    if (!result) {
+      images.forEach(async (item) => {
+        await unlinkFileAsync(item);
+      });
+      res.status(422).json({
+        status: false,
+        message: "User not found in our database",
+      });
+      return;
+    }
+
+    if (result.role != "admin") {
+      images.forEach(async (item) => {
+        await unlinkFileAsync(item);
+      });
+      res.status(422).json({
+        status: false,
+        message: "User do not have permission",
+      });
+      return;
+    }
+
+    const newProduct = new Product({
+      title,
+      price,
+      sizes,
+      size,
+      desc,
+      image,
+      images,
+      filters: {
+        type: filters.type,
+        season: filters.season,
+        for: filters.for,
+        brand: filters.brand,
+      },
+      tags,
+      date: Date.now(),
     });
-});
+
+    newProduct
+      .save()
+      .then(() => {
+        res.status(201).json({
+          status: true,
+          message: "Entry created",
+        });
+      })
+      .catch((err) => {
+        images.forEach(async (item) => {
+          await unlinkFileAsync(item);
+        });
+        res.status(502).json({
+          status: false,
+          message: `Error creating Entry`,
+          error: err,
+        });
+      });
+  }
+);
 
 router.post("/filter-search", async (req, res) => {
   const filters = req.body.filters;
@@ -95,7 +167,7 @@ router.post("/filter-search", async (req, res) => {
   }
   if (filters.size) {
     myArray.push({
-      "filters.sizes": { $in: filters.size },
+      sizes: { $in: filters.size },
     });
   }
   if (filters.for) {
@@ -110,7 +182,7 @@ router.post("/filter-search", async (req, res) => {
   }
   if (filters.price) {
     myArray.push({
-      "filters.price": { $lte: filters.price.lte, $gte: filters.price.gte },
+      price: { $lte: filters.price.lte, $gte: filters.price.gte },
     });
   }
 
@@ -203,7 +275,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const result = await Product.find({}, "-filters -tags");
+  const result = await Product.find({}, "-filters -tags", {
+    sort: { date: -1 },
+  });
   if (result.length == 0) {
     res.status(404).json({
       status: false,

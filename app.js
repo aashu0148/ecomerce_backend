@@ -16,7 +16,7 @@ app.use(function (req, res, next) {
   );
   next();
 });
-app.use("/uploads/image", express.static(path.join("uploads", "image")));
+app.use("/uploads/images", express.static(path.join("uploads", "images")));
 app.use(bodyParser.json());
 
 app.use("/product", productRoute);
