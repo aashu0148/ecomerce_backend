@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
   // requireTLS: true,
   // auth: {
   //   user: "buildforss@gmail.com",
-  //   pass: "build4ss",
+  //   pass: <your original pass>,
   // },
 });
 router.post("/token-signin", async (req, res) => {
@@ -250,7 +250,6 @@ router.post("/place-order", async (req, res) => {
     .save()
     .then(() => {
       const mailOptionsUser = {
-        from: "buildforss@gmail.com",
         to: deliveryAddress.email,
         subject: "Thankyou for placing order.",
         text: `Your order has been placed. Thank you for shopping with us.
@@ -268,7 +267,6 @@ router.post("/place-order", async (req, res) => {
         `,
       };
       const mailOptionsAdmin = {
-        from: "buildforss@gmail.com",
         to: "buildforfb@gmail.com",
         subject: "One order recieved",
         text: `

@@ -44,9 +44,11 @@ router.post(
     },
   ]),
   async (req, res) => {
-    const { uid, title, price, size, desc, filters } = req.body;
-    const sizes = JSON.parse(req.body.sizes);
+    const { uid, title, size, desc } = req.body;
+    const price = JSON.parse(req.body.price);
+    const filters = JSON.parse(req.body.filters);
     const tags = JSON.parse(req.body.tags);
+
     if (!uid) {
       res.status(422).json({
         status: false,
@@ -68,7 +70,7 @@ router.post(
     if (req.files.image)
       req.files.image.forEach((item) => images.push(item.path));
 
-    if (!(title && price && size && desc && filters)) {
+    if (!(title && price && desc && filters)) {
       images.forEach(async (item) => {
         await unlinkFileAsync(item);
       });
@@ -114,8 +116,6 @@ router.post(
     const newProduct = new Product({
       title,
       price,
-      sizes,
-      size,
       desc,
       image,
       images,
@@ -254,7 +254,7 @@ router.get("/search/:query", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const id = req.params.id;
   try {
-    const result = await Place.find({ _id: id }, "-filters -tags");
+    const result = await Product.findOne({ _id: id }, "-filters -tags");
     if (result == 0) {
       res.status(404).json({
         status: false,
