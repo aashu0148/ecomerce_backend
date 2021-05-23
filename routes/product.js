@@ -307,26 +307,26 @@ router.post("/filter-search", async (req, res) => {
 
   const myArray = [];
 
-  if (filters.type.length > 0) {
+  if (filters.type && filters.type.length > 0) {
     myArray.push({
       "filters.type": {
         $in: filters.type.map((item) => new RegExp(item, "ig")),
       },
     });
   }
-  if (filters.size.length > 0) {
+  if (filters.size && filters.size.length > 0) {
     myArray.push({
       sizes: { $in: filters.size.map((item) => new RegExp(item, "ig")) },
     });
   }
-  if (filters.for.length > 0) {
+  if (filters.for && filters.for.length > 0) {
     myArray.push({
       "filters.for": {
         $in: filters.for.map((item) => new RegExp(item, "ig")),
       },
     });
   }
-  if (filters.season.length > 0) {
+  if (filters.season && filters.season.length > 0) {
     myArray.push({
       "filters.season": {
         $in: filters.season.map((item) => new RegExp(item, "ig")),
@@ -460,6 +460,7 @@ router.get("/:id", async (req, res) => {
 router.get("/", async (req, res) => {
   const result = await Product.find({}, "-filters -tags", {
     sort: { date: -1 },
+    limit: 30,
   });
   if (result.length == 0) {
     res.status(404).json({
@@ -471,27 +472,56 @@ router.get("/", async (req, res) => {
   res.status(200).json({
     status: true,
     data: result,
-    // filters:[{
-    //   name:"Price",
-    //   values:[
-    //     {
-    //       name: "Under 500",
-    //       value: "52",
-    //     },
-    //     {
-    //       name: "500 - 1000",
-    //       value: "18",
-    //     },
-    //     {
-    //       name: "1000-3000",
-    //       value: "17",
-    //     },
-    //     {
-    //       name: "3000+",
-    //       value: "16",
-    //     },
-    //   ],
-    // }],
+    message: "Got data successfully",
+  });
+});
+
+router.post("/", async (req, res) => {
+  const { totalProducts, next, prev } = req.body;
+  const limit = 30;
+
+  const productCount = await Product.countDocuments({});
+
+  let skip;
+  if (next && totalProducts) {
+    skip = totalProducts;
+  }
+  if (prev && totalProducts) {
+    if (productCount == totalProducts) {
+      skip = productCount - (productCount % limit) - limit;
+    } else {
+      skip = totalProducts - limit * 2;
+      if (skip < 0) skip = 0;
+    }
+  }
+  if (!next && !prev && totalProducts) {
+    if (productCount == totalProducts) {
+      skip = productCount - (productCount % limit);
+    } else {
+      skip = totalProducts - limit;
+      if (skip < 0) skip = 0;
+    }
+  }
+  if (totalProducts == 0) skip = 0;
+
+  const result = await Product.find({}, "-filters -tags", {
+    sort: { date: -1 },
+    limit: limit,
+    skip: skip || 0,
+  });
+  if (result.length == 0) {
+    res.status(404).json({
+      status: false,
+      message: "Nothing Found !",
+    });
+    return;
+  }
+
+  res.status(200).json({
+    status: true,
+    data: result,
+    productSent: skip + result.length,
+    totalProducts: productCount,
     message: "Got data successfully",
   });
 });
