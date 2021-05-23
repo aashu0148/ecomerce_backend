@@ -284,6 +284,8 @@ router.post("/place-order", async (req, res) => {
             (item) => `
         Item -${item.name}
         Quantity - ${item.qty}
+        Size - ${item.size}
+        Price - ₹${item.price}
         `
           )
           .join("\n")}
