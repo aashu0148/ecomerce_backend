@@ -6,6 +6,7 @@ const userSchema = mongoose.Schema({
   mobile: String,
   email: String,
   password: String,
+  deliveryAddress: String,
   cart: Array,
   orders: Array,
 });

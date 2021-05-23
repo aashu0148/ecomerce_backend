@@ -154,7 +154,18 @@ router.post("/signup", async (req, res) => {
 
 router.post("/update-profile", async (req, res) => {
   const { id, name, mobile } = req.body;
-  const result = await User.findOne({ _id: id }, "-password");
+
+  let result;
+  try {
+    result = await User.findOne({ _id: id }, "-password");
+  } catch (err) {
+    res.status(502).json({
+      status: false,
+      message: `Invalid Id`,
+      error: err,
+    });
+    return;
+  }
 
   if (!result) {
     res.status(404).json({
@@ -201,7 +212,18 @@ router.post("/update-profile", async (req, res) => {
 
 router.post("/check-role", async (req, res) => {
   const { id } = req.body;
-  const result = await User.findOne({ _id: id }, "-password");
+
+  let result;
+  try {
+    result = await User.findOne({ _id: id }, "-password");
+  } catch (err) {
+    res.status(502).json({
+      status: false,
+      message: `Invalid Id`,
+      error: err,
+    });
+    return;
+  }
 
   if (!result) {
     res.status(404).json({
@@ -221,6 +243,54 @@ router.post("/check-role", async (req, res) => {
     status: true,
     message: "Welcome Admin",
   });
+});
+
+router.post("/update-cart", async (req, res) => {
+  const { uid, cart } = req.body;
+  if (!uid) {
+    res.status(422).json({
+      status: false,
+      message: "User's Id not provided",
+    });
+    return;
+  }
+
+  if (!Array.isArray(cart)) {
+    res.status(422).json({
+      status: false,
+      message: "Cart needs to be an array",
+    });
+    return;
+  }
+
+  let user;
+  try {
+    user = await User.findOne({ _id: uid });
+  } catch (err) {
+    res.status(502).json({
+      status: false,
+      message: `Invalid Id`,
+      error: err,
+    });
+    return;
+  }
+
+  user.cart = cart;
+  user
+    .save()
+    .then(() => {
+      res.status(200).json({
+        status: true,
+        message: "Cart updated",
+      });
+    })
+    .catch((err) => {
+      res.status(502).json({
+        status: false,
+        message: `Error updating Cart`,
+        error: err,
+      });
+    });
 });
 
 router.post("/place-order", async (req, res) => {

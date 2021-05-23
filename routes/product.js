@@ -119,6 +119,7 @@ router.post(
       desc,
       image,
       images,
+      sizes: Object.keys(price),
       filters: {
         type: filters.type,
         season: filters.season,
@@ -172,24 +173,20 @@ router.post(
   async (req, res) => {
     const { uid, pid, title, desc } = req.body;
     const price = JSON.parse(req.body.price);
-    
-        let thumbnail, image1, image2, image3;
-    
-        if (req.files.thumbnail) thumbnail = req.files.thumbnail[0].path;
-        if (req.files.image1) image1 = req.files.image1[0].path;
-        if (req.files.image2) image2 = req.files.image2[0].path;
-        if (req.files.image3) image3 = req.files.image3[0].path;
-    
+
+    let thumbnail, image1, image2, image3;
+
+    if (req.files.thumbnail) thumbnail = req.files.thumbnail[0].path;
+    if (req.files.image1) image1 = req.files.image1[0].path;
+    if (req.files.image2) image2 = req.files.image2[0].path;
+    if (req.files.image3) image3 = req.files.image3[0].path;
+
     if (!uid) {
-      if(thumbnail)
-      await unlinkFileAsync(thumbnail);
-      if(image1)
-      await unlinkFileAsync(image1);
-      if(image2)
-      await unlinkFileAsync(image2);
-      if(image3)
-      await unlinkFileAsync(image3);
-    
+      if (thumbnail) await unlinkFileAsync(thumbnail);
+      if (image1) await unlinkFileAsync(image1);
+      if (image2) await unlinkFileAsync(image2);
+      if (image3) await unlinkFileAsync(image3);
+
       res.status(422).json({
         status: false,
         message: "User's Id not provided",
@@ -197,14 +194,10 @@ router.post(
       return;
     }
     if (!pid) {
-      if(thumbnail)
-      await unlinkFileAsync(thumbnail);
-      if(image1)
-      await unlinkFileAsync(image1);
-      if(image2)
-      await unlinkFileAsync(image2);
-      if(image3)
-      await unlinkFileAsync(image3);
+      if (thumbnail) await unlinkFileAsync(thumbnail);
+      if (image1) await unlinkFileAsync(image1);
+      if (image2) await unlinkFileAsync(image2);
+      if (image3) await unlinkFileAsync(image3);
       res.status(422).json({
         status: false,
         message: "Product's Id not provided",
@@ -214,30 +207,24 @@ router.post(
     let result;
     try {
       result = await User.findOne({ _id: uid }, "-password");
-    } catch {async() => {
-        if(thumbnail)
-        await unlinkFileAsync(thumbnail);
-        if(image1)
-        await unlinkFileAsync(image1);
-        if(image2)
-        await unlinkFileAsync(image2);
-        if(image3)
-        await unlinkFileAsync(image3);
+    } catch {
+      async () => {
+        if (thumbnail) await unlinkFileAsync(thumbnail);
+        if (image1) await unlinkFileAsync(image1);
+        if (image2) await unlinkFileAsync(image2);
+        if (image3) await unlinkFileAsync(image3);
         res.status(422).json({
           status: false,
           message: "Invalid id",
         });
-      }}
+      };
+    }
 
     if (!result) {
-      if(thumbnail)
-      await unlinkFileAsync(thumbnail);
-      if(image1)
-      await unlinkFileAsync(image1);
-      if(image2)
-      await unlinkFileAsync(image2);
-      if(image3)
-      await unlinkFileAsync(image3);
+      if (thumbnail) await unlinkFileAsync(thumbnail);
+      if (image1) await unlinkFileAsync(image1);
+      if (image2) await unlinkFileAsync(image2);
+      if (image3) await unlinkFileAsync(image3);
       res.status(422).json({
         status: false,
         message: "User not found in our database",
@@ -246,14 +233,10 @@ router.post(
     }
 
     if (result.role != "admin") {
-      if(thumbnail)
-      await unlinkFileAsync(thumbnail);
-      if(image1)
-      await unlinkFileAsync(image1);
-      if(image2)
-      await unlinkFileAsync(image2);
-      if(image3)
-      await unlinkFileAsync(image3);
+      if (thumbnail) await unlinkFileAsync(thumbnail);
+      if (image1) await unlinkFileAsync(image1);
+      if (image2) await unlinkFileAsync(image2);
+      if (image3) await unlinkFileAsync(image3);
       res.status(422).json({
         status: false,
         message: "User do not have permission",
@@ -268,6 +251,7 @@ router.post(
     }
     if (price) {
       product.price = price;
+      product.sizes = Object.keys(price);
     }
     if (desc) {
       product.desc = desc;
@@ -296,8 +280,8 @@ router.post(
     if (image3) {
       product.images.splice(3, 1, image3);
     }
-   ;
-    product.save()
+    product
+      .save()
       .then(() => {
         res.status(201).json({
           status: true,
@@ -305,14 +289,10 @@ router.post(
         });
       })
       .catch(async (err) => {
-        if(thumbnail)
-        await unlinkFileAsync(thumbnail);
-        if(image1)
-        await unlinkFileAsync(image1);
-        if(image2)
-        await unlinkFileAsync(image2);
-        if(image3)
-        await unlinkFileAsync(image3);
+        if (thumbnail) await unlinkFileAsync(thumbnail);
+        if (image1) await unlinkFileAsync(image1);
+        if (image2) await unlinkFileAsync(image2);
+        if (image3) await unlinkFileAsync(image3);
         res.status(502).json({
           status: false,
           message: `Error updating Product`,
@@ -327,35 +307,56 @@ router.post("/filter-search", async (req, res) => {
 
   const myArray = [];
 
-  if (filters.type) {
+  if (filters.type.length > 0) {
     myArray.push({
-      "filters.type": { $in: filters.type },
+      "filters.type": {
+        $in: filters.type.map((item) => new RegExp(item, "ig")),
+      },
     });
   }
-  if (filters.brand) {
+  if (filters.size.length > 0) {
     myArray.push({
-      "filters.brand": { $in: filters.brand },
+      sizes: { $in: filters.size.map((item) => new RegExp(item, "ig")) },
     });
   }
-  if (filters.size) {
+  if (filters.for.length > 0) {
     myArray.push({
-      sizes: { $in: filters.size },
+      "filters.for": {
+        $in: filters.for.map((item) => new RegExp(item, "ig")),
+      },
     });
   }
-  if (filters.for) {
+  if (filters.season.length > 0) {
     myArray.push({
-      "filters.for": { $in: filters.for },
-    });
-  }
-  if (filters.season) {
-    myArray.push({
-      "filters.season": { $in: filters.season },
+      "filters.season": {
+        $in: filters.season.map((item) => new RegExp(item, "ig")),
+      },
     });
   }
   if (filters.price) {
     myArray.push({
-      price: { $lte: filters.price.lte, $gte: filters.price.gte },
+      $or: [
+        {
+          "price.s": { $lte: filters.price.lte, $gte: filters.price.gte },
+        },
+        {
+          "price.m": { $lte: filters.price.lte, $gte: filters.price.gte },
+        },
+        {
+          "price.l": { $lte: filters.price.lte, $gte: filters.price.gte },
+        },
+        {
+          "price.xl": { $lte: filters.price.lte, $gte: filters.price.gte },
+        },
+        {
+          "price.xxl": { $lte: filters.price.lte, $gte: filters.price.gte },
+        },
+      ],
     });
+  }
+
+  if (myArray.length == 0) {
+    myArray.push({});
   }
 
   const result = await Product.find(
@@ -364,6 +365,7 @@ router.post("/filter-search", async (req, res) => {
     },
     "-filters -tags"
   );
+
   if (result.length == 0) {
     res.status(404).json({
       status: false,
