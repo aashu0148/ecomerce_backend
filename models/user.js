@@ -8,7 +8,6 @@ const userSchema = mongoose.Schema({
   password: String,
   deliveryAddress: String,
   cart: Array,
-  orders: Array,
 });
 
 module.exports = mongoose.model("User", userSchema);

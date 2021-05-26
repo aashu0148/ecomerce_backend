@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/user");
+const Order = require("../models/order");
 const jwt = require("jsonwebtoken");
 const secretKey = require("../secret");
 const nodemailer = require("nodemailer");
@@ -20,6 +21,7 @@ const transporter = nodemailer.createTransport({
   //   pass: <your original pass>,
   // },
 });
+
 router.post("/token-signin", async (req, res) => {
   const token = req.body.token;
   let email, password;
@@ -314,15 +316,24 @@ router.post("/place-order", async (req, res) => {
 
   const result = await User.findOne({ _id: id }, "-password");
 
-  result.orders.push(order);
-  result.cart = [];
-  result
+  const newOrder = new Order({
+    isDelivered: false,
+    isCancelled: false,
+    deliveryAddress: deliveryAddress,
+    user: id,
+    items: order,
+    date: new Date(),
+  });
+
+  newOrder
     .save()
     .then(() => {
-      const mailOptionsUser = {
-        to: deliveryAddress.email,
-        subject: "Thankyou for placing order.",
-        text: `Your order has been placed. Thank you for shopping with us.
+      result.cart = [];
+      result.save().then(() => {
+        const mailOptionsUser = {
+          to: deliveryAddress.email,
+          subject: "Thankyou for placing order.",
+          text: `Your order has been placed. Thank you for shopping with us.
         
         Your order details :-
         ${order
@@ -335,11 +346,11 @@ router.post("/place-order", async (req, res) => {
           .join("\n")}
         
         `,
-      };
-      const mailOptionsAdmin = {
-        to: "buildforfb@gmail.com",
-        subject: "One order recieved",
-        text: `
+        };
+        const mailOptionsAdmin = {
+          to: "buildforfb@gmail.com",
+          subject: "One order recieved",
+          text: `
         Name - ${deliveryAddress.name}
         Email - ${deliveryAddress.email}
         Mobile number - ${deliveryAddress.mobile}
@@ -360,17 +371,16 @@ router.post("/place-order", async (req, res) => {
           )
           .join("\n")}
         `,
-      };
+        };
 
-      transporter.sendMail(mailOptionsUser, (err, info) => {
-        console.log(err, info);
-      });
-      transporter.sendMail(mailOptionsAdmin, (err, info) => {
-        console.log(err, info);
-      });
-      res.status(200).json({
-        status: true,
-        message: "Order placed successfully",
+        transporter.sendMail(mailOptionsUser, (err, info) => {
+          // console.log(err, info);
+        });
+        transporter.sendMail(mailOptionsAdmin);
+        res.status(200).json({
+          status: true,
+          message: "Order placed successfully",
+        });
       });
     })
     .catch((err) => {
@@ -378,6 +388,74 @@ router.post("/place-order", async (req, res) => {
         status: false,
         message: `Error placing Order`,
         error: err,
+      });
+    });
+});
+
+router.post("/cancel-order", async (req, res) => {
+  const { uid, oid } = req.body;
+
+  if (!uid) {
+    res.status(422).json({
+      status: false,
+      message: "User's Id not provided",
+    });
+    return;
+  }
+  if (!oid) {
+    res.status(422).json({
+      status: false,
+      message: "Order Id not provided",
+    });
+    return;
+  }
+
+  let result;
+  try {
+    result = await Order.findOne({ _id: oid, user: uid, isCancelled: false });
+  } catch (err) {
+    res.status(422).json({
+      status: false,
+      message: "Credentails are not valid",
+    });
+    return;
+  }
+
+  result.isCancelled = true;
+  const deliveryAddress = result.deliveryAddress;
+  const items = result.items;
+
+  result
+    .save()
+    .then(() => {
+      const mailOptionsUser = {
+        to: deliveryAddress.email,
+        subject: "Order Cancelled.",
+        text: `Your order has been Cancelled.
+      
+      Your order details :-
+      ${items
+        .map(
+          (item) => `
+      Item -${item.name}
+      Quantity - ${item.qty}
+      `
+        )
+        .join("\n")}
+      
+      `,
+      };
+      transporter.sendMail(mailOptionsUser);
+
+      res.status(200).json({
+        status: true,
+        message: "Order cancelled successfully",
+      });
+    })
+    .catch(() => {
+      res.status(502).json({
+        status: false,
+        message: "Error cancelling order",
       });
     });
 });

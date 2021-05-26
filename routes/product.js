@@ -460,7 +460,7 @@ router.get("/:id", async (req, res) => {
 router.get("/", async (req, res) => {
   const result = await Product.find({}, "-filters -tags", {
     sort: { date: -1 },
-    limit: 30,
+    limit:40,
   });
   if (result.length == 0) {
     res.status(404).json({

@@ -7,6 +7,7 @@ const mongoUri = require("./mongoUri");
 
 const productRoute = require("./routes/product");
 const userRoute = require("./routes/user");
+const adminRoute = require("./routes/admin");
 
 app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -21,6 +22,7 @@ app.use(bodyParser.json());
 
 app.use("/product", productRoute);
 app.use("/user", userRoute);
+app.use("/admin", adminRoute);
 
 mongoose
   .connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -28,7 +30,6 @@ mongoose
     console.log("Connected");
     app.listen(process.env.PORT || 5000);
   })
-
   .catch((err) => {
     console.error("Cannot connect.", err);
   });
