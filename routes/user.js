@@ -296,7 +296,7 @@ router.post("/update-cart", async (req, res) => {
 });
 
 router.post("/place-order", async (req, res) => {
-  const { id, deliveryAddress, paymentMethod, order } = req.body;
+  const { id, deliveryAddress, paymentMethod, order, price } = req.body;
 
   if (
     !deliveryAddress.name ||
@@ -305,7 +305,8 @@ router.post("/place-order", async (req, res) => {
     !deliveryAddress.address ||
     !deliveryAddress.city ||
     !deliveryAddress.state ||
-    !order
+    !order ||
+    !price
   ) {
     res.status(422).json({
       status: false,
@@ -323,6 +324,9 @@ router.post("/place-order", async (req, res) => {
     user: id,
     items: order,
     date: new Date(),
+    price: Number.parseFloat(price),
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
   });
 
   newOrder
