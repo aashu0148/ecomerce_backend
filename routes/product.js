@@ -334,22 +334,30 @@ router.post("/filter-search", async (req, res) => {
     });
   }
   if (filters.price) {
+    const myObj = {};
+    if (filters.price.lte) {
+      myObj["$lte"] = filters.price.lte;
+    }
+    if (filters.price.gte) {
+      myObj["$gte"] = filters.price.gte;
+    }
+    
     myArray.push({
       $or: [
         {
-          "price.s": { $lte: filters.price.lte, $gte: filters.price.gte },
+          "price.s": myObj,
         },
         {
-          "price.m": { $lte: filters.price.lte, $gte: filters.price.gte },
+          "price.m": myObj,
         },
         {
-          "price.l": { $lte: filters.price.lte, $gte: filters.price.gte },
+          "price.l": myObj,
         },
         {
-          "price.xl": { $lte: filters.price.lte, $gte: filters.price.gte },
+          "price.xl": myObj,
         },
         {
-          "price.xxl": { $lte: filters.price.lte, $gte: filters.price.gte },
+          "price.xxl": myObj,
         },
       ],
     });
@@ -460,7 +468,7 @@ router.get("/:id", async (req, res) => {
 router.get("/", async (req, res) => {
   const result = await Product.find({}, "-filters -tags", {
     sort: { date: -1 },
-    limit:40,
+    limit: 40,
   });
   if (result.length == 0) {
     res.status(404).json({

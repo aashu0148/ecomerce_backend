@@ -426,6 +426,14 @@ router.post("/cancel-order", async (req, res) => {
     return;
   }
 
+  if (!result) {
+    res.status(404).json({
+      status: false,
+      message: "No order found with this order id",
+    });
+    return;
+  }
+
   result.isCancelled = true;
   const deliveryAddress = result.deliveryAddress;
   const items = result.items;
@@ -463,6 +471,44 @@ router.post("/cancel-order", async (req, res) => {
         message: "Error cancelling order",
       });
     });
+});
+
+router.post("/get-orders", async (req, res) => {
+  const id = req.body.id;
+
+  if (!id) {
+    res.status(422).json({
+      status: false,
+      message: "User's Id not provided",
+    });
+    return;
+  }
+
+  let result;
+
+  try {
+    result = await Order.find({ user: id });
+  } catch (error) {
+    res.status(502).json({
+      status: false,
+      message: "Error fetching orders, " + error,
+    });
+    return;
+  }
+
+  if (result.length == 0) {
+    res.status(404).json({
+      status: false,
+      message: "No orders found.",
+    });
+    return;
+  }
+
+  res.status(200).json({
+    status: true,
+    message: "Got orders successfully",
+    data: result,
+  });
 });
 
 module.exports = router;
