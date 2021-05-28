@@ -322,7 +322,7 @@ router.post("/filter-search", async (req, res) => {
   if (filters.for && filters.for.length > 0) {
     myArray.push({
       "filters.for": {
-        $in: filters.for.map((item) => new RegExp(item, "ig")),
+        $in: filters.for.map((item) => new RegExp(`^${item}`, "ig")),
       },
     });
   }
@@ -341,7 +341,6 @@ router.post("/filter-search", async (req, res) => {
     if (filters.price.gte) {
       myObj["$gte"] = filters.price.gte;
     }
-    
     myArray.push({
       $or: [
         {
@@ -417,13 +416,14 @@ router.post("/delete", (req, res) => {
 
 router.get("/search/:query", async (req, res) => {
   const query = req.params.query;
+  const queryArray = query.split(" ");
   const result = await Product.find({
     $or: [
       {
-        tags: new RegExp(query, "ig"),
+        tags: { $in: queryArray.map((item) => new RegExp(`${item}`, "ig")) },
       },
       {
-        title: new RegExp(query, "ig"),
+        title:{ $in: queryArray.map((item) => new RegExp(`${item}`, "ig")) },
       },
     ],
   });
