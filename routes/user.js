@@ -57,6 +57,78 @@ router.post("/token-signin", async (req, res) => {
   });
 });
 
+router.post("/google-signin", async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name) {
+    res.status(422).json({
+      status: false,
+      message: "name is mandatory",
+    });
+    return;
+  }
+  if (!password || password.length < 5) {
+    res.status(422).json({
+      status: false,
+      message: "Invalid Password",
+    });
+    return;
+  }
+
+  const emailRegex =
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+  if (!emailRegex.test(email.toLowerCase())) {
+    res.status(422).json({
+      status: false,
+      message: "Invalid Email",
+    });
+    return;
+  }
+
+  const result = await User.findOne(
+    { email: email, password: password },
+    "-password"
+  );
+  if (result) {
+    res.status(200).json({
+      status: true,
+      data: result,
+      message: "User Found",
+    });
+    return;
+  }
+  const newUser = new User({
+    role: "user",
+    name,
+    email,
+    password,
+    cart: [],
+    orders: [],
+  });
+
+  newUser
+    .save()
+    .then((response) => {
+      res.status(201).json({
+        status: true,
+        message: "User created",
+        data: {
+          id: response._id,
+          name: response.name,
+          email: response.email,
+          mobile: response.mobile,
+        },
+      });
+    })
+    .catch((err) => {
+      res.status(502).json({
+        status: false,
+        message: `Error creating new User`,
+        error: err,
+      });
+    });
+});
+
 router.post("/signin", async (req, res) => {
   const { email, password } = req.body;
   const result = await User.findOne(

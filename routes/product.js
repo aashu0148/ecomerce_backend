@@ -319,6 +319,13 @@ router.post("/filter-search", async (req, res) => {
       sizes: { $in: filters.size.map((item) => new RegExp(item, "ig")) },
     });
   }
+  if (filters.brand && filters.brand.length > 0) {
+    myArray.push({
+      "filters.brand": {
+        $in: filters.brand.map((item) => new RegExp(item, "ig")),
+      },
+    });
+  }
   if (filters.for && filters.for.length > 0) {
     myArray.push({
       "filters.for": {
@@ -423,7 +430,7 @@ router.get("/search/:query", async (req, res) => {
         tags: { $in: queryArray.map((item) => new RegExp(`${item}`, "ig")) },
       },
       {
-        title:{ $in: queryArray.map((item) => new RegExp(`${item}`, "ig")) },
+        title: { $in: queryArray.map((item) => new RegExp(`${item}`, "ig")) },
       },
     ],
   });
