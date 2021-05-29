@@ -314,6 +314,14 @@ router.post("/filter-search", async (req, res) => {
       },
     });
   }
+
+  if (filters.tags && filters.tags.length > 0) {
+    myArray.push({
+      tags: {
+        $in: filters.tags.map((item) => new RegExp(item, "ig")),
+      },
+    });
+  }
   if (filters.size && filters.size.length > 0) {
     myArray.push({
       sizes: { $in: filters.size.map((item) => new RegExp(item, "ig")) },
@@ -395,7 +403,7 @@ router.post("/filter-search", async (req, res) => {
   return;
 });
 
-router.post("/delete", (req, res) => {
+router.post("/delete", async (req, res) => {
   const id = req.body.id;
 
   if (!id) {
@@ -405,6 +413,20 @@ router.post("/delete", (req, res) => {
     });
     return;
   }
+
+  const result = await Product.findOne({ _id: id });
+
+  if (!result) {
+    res.status(422).json({
+      status: false,
+      message: "Invalid Product Id",
+    });
+    return;
+  }
+
+  result.images.forEach(async (item) => {
+    await unlinkFileAsync(item);
+  });
 
   Product.deleteOne({ _id: id })
     .then(() => {
