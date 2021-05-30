@@ -48,7 +48,6 @@ router.post(
     const price = JSON.parse(req.body.price);
     const filters = JSON.parse(req.body.filters);
     const tags = JSON.parse(req.body.tags);
-
     if (!uid) {
       res.status(422).json({
         status: false,
